@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Connect 4</title>
+        <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css">
+        <style>
+            body {
+                padding: 20px;
+            }
+
+            .instructions {
+                padding-bottom: 20px;
+            }
+
+            .game {
+                padding-top: 20px;
+            }
+            #board {
+                padding-top: 20px;
+            }
+            #player {
+                width: 25px;
+                height: 25px;
+                background-color: blue;
+                display: none;   
+                }
+
+            #page-wrap { width: 600px; margin: 0 auto; }
+
+table { border-collapse: collapse; }
+td { border: 1px solid #ccc; padding: 25px; width: 25px; }
+.hover { background-color: #eee; }
+.redcoin{ background-color: red; }
+.bluecoin{ background-color: blue; }
+
+
+</style>
+<script src="http://code.jquery.com/jquery-latest.min.js"></script>
+<script>
+
+$(function(){
+
+var a; //holds the main array
+var player="b"; // blue starts first
+var width; // height to be specified by user
+var height; //width to be specified by user
+var checkdraw; // to check if the whole board is filled out
+$("#board").delegate('table td','mouseover mouseleave click', function(e) {
+            
+        if (e.type == 'click')  //when clicking on a column
+        {
+        //alert(a[2].length);
+            var row = filltable($(this).index()); //Fill the table with the particular color
+            //alert(row);
+            if(!(row===undefined)){
+                //alert(checkdraw);
+                if(overallCheck($(this).index(), row)){ //Checks if someone has won
+                    if (player == "r")
+                        alert("RED wins!!");
+                    else
+                        alert("BLUE  wins!!");    
+                    startgame();
+                }
+                else if(checkdraw==0){
+                    alert("It's a draw");    
+                    startgame();
+                }
+                else
+                    changePlayer();
+            } // Change turn if no one has won
+        }
+        if (e.type == 'mouseover') { //to highlight column on hover
+            $("colgroup").eq($(this).index()).addClass("hover");
+        }
+        else{
+            $("colgroup").eq($(this).index()).removeClass("hover");
+        }
+});
+
+function startgame(){ //this function initialises a for a given width and height
+        checkdraw=Number(width) * Number(height);
+        a = new Array(Number(width));
+        for (var i = 0; i < width; i++) {
+            a[i] = new Array(Number(height));
+        }    
+        $("#player").show();
+        initializetable();
+};
+
+function filltable(index){ //fills up the table by placing in lowest row
+
+        for (var i = height-1; i >= 0; i--) {
+            if(!a[index][i]){
+                checkdraw--;
+                if(player=="b"){
+                    a[index][i]="b";
+                    $("tr").eq(i).children("td").eq(index).addClass("bluecoin");
+                    return i;
+                }
+                else{
+                    a[index][i]="r";
+                    $("tr").eq(i).children("td").eq(index).addClass("redcoin");
+                    return i;
+                }
+            }
+        }
+};
+
+function changePlayer(){ //changes player
+
+        if(player=="b"){
+            player="r";
+            $("#player").css("background-color","red");
+        }
+        else
+        {
+            player = "b";
+            $("#player").css("background-color","blue");
+        }
+};
+
+function initializetable(){ //Just for setting up the table intially on click of start. It erases erases current table and starts new when start is pressed
+
+        $('#board').empty();
+        var html = '<table>';
+        for(var i=0;i<width;i++){
+            html += '<colgroup></colgroup>';
+        } 
+        html+= '<tbody>';
+        for(var i=0;i<height;i++){
+            html+='<tr>'
+            for(var j=0;j<width;j++){
+                html+='<td></td>'; 
+            }
+            html+='</tr>'
+        }
+        html+= '</tbody></table>';
+        $(html).appendTo("#board");
+};
+
+function selectOptions(){ //for showing user the option of choosing rows and columns. Currently its restricted to 6-15. Can be extended if needed
+
+        $('#start').hide();
+        $("#gameOptions").show();
+        for (i=6;i<=15;i++){
+            $("#rowoptions").append($('<option></option>').val(i).html(i))
+        }
+        for (i=6;i<=15;i++){
+            $("#columnoptions").append($('<option></option>').val(i).html(i))
+        }
+};
+
+$('#begin').on('click', function (e) { //onclick of the start button, it takes values from the drop downs
+        height = $('#rowoptions').val();
+        width = $('#columnoptions').val();
+        startgame();            
+});
+
+$('#start').on('click', function (e) { //just shows the row and column selection options
+        selectOptions();   
+});
+
+var checkForWin = {  //checks for win
+    
+        rowCheck: function(column, row){ //checks if there are 4 same color in a row. Optimized for speed. Uses only one loop
+            var count=0;
+            var start = column-3; //where to start checking from
+            var end = column+3; //where to end checking
+            if(start<0) //check if out of bounds
+                start=0;
+            if(end>width-1) //check if out of bounds
+                end=width;
+            for (var i =start;i<end-1; i++)
+            {
+                if(a[i][row]){
+                    if(a[i][row]==a[i+1][row]){    
+                        count++;
+                    }
+                    else{
+                        count=0;
+                    }
+                    if(count==3){
+                        count=0;
+                        return true;
+                    }
+                }
+                else
+                {
+                    count=0;
+                }
+            }
+            return false;
+        },
+        columnCheck: function(column, row){ //checks of 4 in same column. Optimised for speed. No loops needed here
+            if(row<height-3)
+            {
+                if(a[column][row]==a[column][row+1]&&
+                a[column][row+1]==a[column][row+2]&&
+                a[column][row+2]==a[column][row+3])
+                    return true;  
+            }
+            return false;
+        },    
+        diagonalCheck: function(column, row){ // optimsed so that it uses least number of loops
+        //right-up diagonal check
+            var i =3;
+            var rowstart= row-3; //reaching for top right corner check
+            var colstart= column+3; //reaching for top right corner check
+            if(colstart>width-1){   //check if out of bounds
+                rowstart += (colstart-(width-1));  //adjust row start accordingly
+                i -= (colstart-(width-1));  //adjust the number of iterations needed
+                colstart=width-1; //adjust column start point
+            }
+            if(rowstart<0){ //very similar to the logic for colstart
+                colstart -= (-1*rowstart);
+                i -= (-1*rowstart);
+                rowstart=0;
+            }    
+        //alert(rowstart);
+        
+            while(i>=0){
+                if(colstart-3 < 0 || rowstart+3 > height-1){ //check if its going out of bounds
+                    break;
+                }
+                else{    
+                    if(a[colstart][rowstart]==a[colstart-1][rowstart+1] &&
+                    a[colstart-1][rowstart+1] == a[colstart-2][rowstart+2] &&
+                    a[colstart-2][rowstart+2] == a[colstart-3][rowstart+3]){
+                        return true;    
+                    }
+                i--;
+                colstart--;
+                rowstart++;
+                }
+            }
+        //right-down diagonal check
+            i=3;
+            rowstart = row+3;
+            colstart = column+3;
+            if(colstart>width-1){
+                rowstart -= (colstart-(width-1));
+                i -= (colstart-(width-1));
+                colstart=width-1;
+            }
+            if(rowstart>height-1){
+                colstart -= (rowstart-(height-1));
+                i -= (rowstart-(height-1));
+                rowstart=height-1;
+            } 
+       // alert(rowstart);
+       // alert(colstart);
+            while(i>=0){
+                if(colstart-3 < 0 || rowstart-3 < 0){
+                    break;
+                }
+                else{
+            //alert(i);    
+                    if(a[colstart][rowstart]==a[colstart-1][rowstart-1] &&
+                    a[colstart-1][rowstart-1] == a[colstart-2][rowstart-2] &&
+                    a[colstart-2][rowstart-2] == a[colstart-3][rowstart-3]){
+                //alert(i);
+                        return true;    
+                    }
+                    i--;
+                    colstart--;
+                    rowstart--;
+            }
+        }
+
+        
+    return false
+    }
+}
+
+function overallCheck(row, column){ //checks for all the possible wins one by one
+
+if(checkForWin.rowCheck(row, column) )
+            return true;
+        if(checkForWin.columnCheck(row, column) )
+            return true;
+        if( checkForWin.diagonalCheck(row, column) )
+            return true;
+        
+    };
+ 
+});
+
+
+</script>
+</head>
+    <body>
+        <div class="row">
+            <div class="col-md-4">
+                <button id="start" type="button">Play</button>
+            </div>
+        </div>
+        <div class"game">            
+            <div id="gameOptions" style="display: none;">
+                No. of Rows <select id="rowoptions"></select>
+                No. of Columns <select id="columnoptions"></select>
+                <button id="begin" type="button" >Start</button>
+                <div id="player"></div>
+              </div>
+            <div id="board">
+            </div>
+        </div>
+    </body>
+</html>
